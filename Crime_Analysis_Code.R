@@ -148,14 +148,14 @@ library(readxl)
 data_path <- "YOUR DATA PATH"  # Update the path accordingly
 crime_data_ridge <- read_excel(data_path)
 
-predictors <- crime_data_ridge[, c("Unemployment", "Density", "Poverty", "Psy", "Bachelor", "SingleParent")]
+Xvar <- crime_data_ridge[, c("Unemployment", "Density", "Poverty", "Psy", "Bachelor", "SingleParent")]
 response <- crime_data_ridge$Total_Crime_Rate
 
 # Standardize the X(independent variables)
-predictors_scaled <- scale(predictors)
+Xvar_scaled <- scale(Xvar)
 
 # Convert to matrix format as required by glmnet
-x <- as.matrix(predictors_scaled)
+x <- as.matrix(Xvar_scaled)
 y <- response
 
 # Perform ridge regression with cross-validation
@@ -169,7 +169,7 @@ plot(cv_ridge)
 ridge_model <- cv_ridge$glmnet.fit
 plot(ridge_model, xvar = "lambda", label = TRUE, col = rainbow(ncol(x)))
 title("Coefficient Paths for Ridge Regression (Total Crime Rate)")
-legend("topright", legend = colnames(predictors), col = rainbow(ncol(x)), lty = 1, cex = 0.8)
+legend("topright", legend = colnames(Xvar), col = rainbow(ncol(x)), lty = 1, cex = 0.8)
 
 # Retrieve the lambda that minimizes the cross-validation error
 optimal_lambda <- cv_ridge$lambda.min
@@ -178,12 +178,12 @@ print(paste("Optimal lambda:", optimal_lambda))
 final_model <- glmnet(x, y, alpha = 0, lambda = optimal_lambda)
 
 # Extract coefficients and print them 
-coefficients <- coef(final_model)
+coefficients <- coef(ridgeresults)
 print("Ridge Regression Coefficients:")
 print(coefficients)
 
 print("Ridge Regression Model Summary:")
-print(summary(final_model))
+print(summary(ridgeresults))
 
 
 #BELOW IS FOR TABLE DISPLAY OPTIONAL
