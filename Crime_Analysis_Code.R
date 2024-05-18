@@ -8,43 +8,39 @@ library(readxl)
 library(knitr)
 library(kableExtra)
 
-# Load the data from the specified Excel file
-data_path <- "YOUR DATA PATH"  # Update the path accordingly
+data_path <- "YOUR DATA PATH"  # Update the path accordingly(do this for all code if needed)
 crime_data <- read_excel(data_path)
 
-# VAR Model and Optimal Lag Selection 
+# VAR model and optimal lag selection change the dependent or independent if you wish accordingly.(Its Psy and Total Crime here)
 model_selection <- VARselect(crime_data[, c("d2Psy", "d2Total_Crime")], 
                              lag.max = 10, 
                              type = "both")
 
-# Print the selection results to see the optimal number of lags for each criterion
 print("Lag selection results:")
 print(model_selection$selection)
 
-# Extract the optimal number of lags for each information criterion
+# Extract and print the optimal lags for each criterion
 optimal_lags_aic <- model_selection$selection["AIC(n)"]
 optimal_lags_hq <- model_selection$selection["HQ(n)"]
 optimal_lags_sc <- model_selection$selection["SC(n)"]
 optimal_lags_fpe <- model_selection$selection["FPE(n)"]
 
-# Print the optimal lags
 print(paste("Optimal lags based on AIC:", optimal_lags_aic))
 print(paste("Optimal lags based on HQIC:", optimal_lags_hq))
 print(paste("Optimal lags based on SC (Schwarz Criterion):", optimal_lags_sc))
 print(paste("Optimal lags based on FPE (Final Prediction Error):", optimal_lags_fpe))
 
-# Determine which criterion to use based on a predefined priority or the smallest lag
-optimal_lag_final <- max(c(optimal_lags_aic, optimal_lags_hq, optimal_lags_sc, optimal_lags_fpe))
+# Determine which criterion to use based on a predefined priority or the smallest lag(we use mode here) and fit var model
+optimal_lag_final <- mode(c(optimal_lags_aic, optimal_lags_hq, optimal_lags_sc, optimal_lags_fpe))
 print(paste("Chosen optimal lag length:", optimal_lag_final))
 
-# Fit VAR model with the chosen optimal lag
 var_model <- VAR(crime_data[, c("d2Psy", "d2Total_Crime")], p = optimal_lag_final, type = "both")
 
-# Perform Granger causality tests
+# Perform Granger 
 granger_results <- causality(var_model, cause = "d2Psy")
 granger_results_reverse <- causality(var_model, cause = "d2Total_Crime")
 
-# Print the full causality results
+# Print granger and reverse granger results
 print("Granger causality results from d2Psy to d2Total_Crime:")
 print(granger_results)
 
@@ -67,7 +63,6 @@ instantaneous_p_value_crime_to_psy <- granger_results_reverse$Instant$p.value[1]
 
 
 #BELOW IS MERELY FOR TABLE DISPLAY AND OPTIONAL
-# Create results data frame
 granger_results_df <- data.frame(
   Test = c("d2Psy to d2Total_Crime", "d2Total_Crime to d2Psy"),
   F_Test_Value = c(f_test_value_psy_to_crime, f_test_value_crime_to_psy),
@@ -83,7 +78,6 @@ kable_granger <- kable(granger_results_df, format = "html", caption = "Granger C
   column_spec(5, color = ifelse(granger_results_df$P_Value < 0.05, "green", "red")) %>%
   column_spec(6, color = ifelse(granger_results_df$Instantaneous_P_Value < 0.05, "green", "red"))
 
-# Display the table
 print(kable_granger)
 
 
@@ -92,7 +86,6 @@ library(readxl)
 library(dplyr)
 library(broom)
 
-# Load the data
 data_path <- "YOUR DATA PATH"  # Update the path accordingly
 crime_data_lm <- read_excel(data_path)
 
@@ -107,15 +100,14 @@ fit_models <- function(dep_var) {
       model <- lm(formula, data = crime_data_lm)
       summary_model <- summary(model)
       
-      # Extracting p-values
+      # Extracting p-values and F-statistics and storing results
       p_values <- summary_model$coefficients[, 4]  # Getting p-values of all terms
       max_p_value <- max(p_values[-1])  # Ignore the intercept p-value for the threshold check
       
       if (max_p_value <= 0.1) {
-        # Extracting F-statistic value
         f_statistic <- summary_model$fstatistic[1]
         
-        # Storing results
+        
         model_info <- data.frame(
           Dependent = dep_var,
           Independents = toString(vars),
@@ -134,7 +126,7 @@ fit_models <- function(dep_var) {
   results
 }
 
-# List of dependent and independent variables
+
 dependent_vars <- c("Total_Crime_Rate", "Violent_Crime_Rate", "Property_Crime_Rate",
                     "MURDER", "RAPE", "ROBBERY", "FELONY_ASSAULT", "BURGLARY",
                     "GRAND_LARCENY", "GRAND_LARCENY_OF_MOTOR_VEHICLE")
@@ -153,15 +145,13 @@ library(knitr)
 library(kableExtra)
 library(readxl)
 
-# Load the data
 data_path <- "YOUR DATA PATH"  # Update the path accordingly
 crime_data_ridge <- read_excel(data_path)
 
-# Extracting predictor variables and response variable
 predictors <- crime_data_ridge[, c("Unemployment", "Density", "Poverty", "Psy", "Bachelor", "SingleParent")]
 response <- crime_data_ridge$Total_Crime_Rate
 
-# Standardize the predictors
+# Standardize the X(independent variables)
 predictors_scaled <- scale(predictors)
 
 # Convert to matrix format as required by glmnet
@@ -172,7 +162,7 @@ y <- response
 set.seed(123)  # for reproducibility
 cv_ridge <- cv.glmnet(x, y, alpha = 0, standardize = TRUE)  
 
-# Plot the cross-validation results
+# Plot the cross-validation results 
 plot(cv_ridge)
 
 # Plot the coefficient paths
@@ -185,7 +175,6 @@ legend("topright", legend = colnames(predictors), col = rainbow(ncol(x)), lty = 
 optimal_lambda <- cv_ridge$lambda.min
 print(paste("Optimal lambda:", optimal_lambda))
 
-# Fit the final ridge regression model using the optimal lambda
 final_model <- glmnet(x, y, alpha = 0, lambda = optimal_lambda)
 
 # Extract coefficients and print them 
@@ -193,17 +182,15 @@ coefficients <- coef(final_model)
 print("Ridge Regression Coefficients:")
 print(coefficients)
 
-# Optionally print a more detailed summary of the model
 print("Ridge Regression Model Summary:")
 print(summary(final_model))
 
 
 #BELOW IS FOR TABLE DISPLAY OPTIONAL
 
-# Extract coefficients from the model and convert to matrix
 coeff_matrix <- as.matrix(coef(final_model, s = optimal_lambda))
 
-# Create a data frame from the matrix
+
 coefficients_df <- data.frame(
   Variable = rownames(coeff_matrix),  # Extract row names as variable names
   Estimate = coeff_matrix[,1]         # The coefficients are in the first column
@@ -217,7 +204,6 @@ kable_ridge <- kable(coefficients_df, format = "html",
   column_spec(1, bold = T, color = "black") %>%
   scroll_box(width = "100%", height = "500px")
 
-# Display the table
 print(kable_ridge)
 
 
@@ -266,7 +252,7 @@ crime_data_precinct_sf <- crime_data_precinct_sf %>%
 # Calculate centroids for label placement in boroughs
 boroughs$centroid <- st_centroid(boroughs$geometry)
 
-# Create the heatmap with custom colors, label scaling of your choice
+# Create with colors labels formatting. Fix accordingly to your likings. 
 plot <- ggplot() +
   geom_sf(data = boroughs, fill = NA, color = "black", size = 1) +
   geom_sf(data = crime_data_precinct_sf, aes(fill = Crime_Count), color = "white", size = 0.2) +
@@ -295,14 +281,13 @@ library(dplyr)
 library(sf)
 library(ggplot2)
 library(scales)
-# Ensure 'crimes_sf' is loaded as an SF object
+
 # Extract longitude and latitude from the geometry
 crime_data <- as.data.frame(st_coordinates(crimes_sf))
 
-# Now, join this coordinate data back with the original data to retain the crime count
 crime_data <- bind_cols(crime_data, as.data.frame(crimes_sf))
 
-# Rename the extracted coordinate columns appropriately if needed
+
 names(crime_data)[1:2] <- c("Longitude", "Latitude")
 
 # Aggregate crime data by location and count the number of crimes
@@ -313,17 +298,17 @@ crime_counts <- crime_data %>%
 boroughs_path <- "Your borough spatial file pathway"# your borough spatial data to label borough boundaries
 boroughs <- st_read(boroughs_path)
 
-# Filter for locations with a crime count above a certain threshold, e.g., more than 10 crimes
+# Filter for locations with a crime count above 20
 threshold <- 20
 significant_crime_locations <- crime_counts %>%
   filter(Crime_Count > threshold)
 
-# Set a base color for boroughs and define colors for different crime severity levels
-base_borough_color <- "thistle"  # A shade of lilac for the boroughs
+# Pick your favorite colors!
+base_borough_color <- "thistle"  # A shade of lilac for the boroughs because I dont like it pure white
 crime_colors <- c("lightblue", "yellow", "orange", "red")  # Colors for crime severity
 
-# Assuming 'significant_crime_locations' is prepared with 'Crime_Count' and coordinates
-# Adjust the dataset for plotting
+
+# Adjust the dataset for plotting 
 significant_crime_locations$size <- ifelse(significant_crime_locations$Crime_Count >= 400, 12,
                                            ifelse(significant_crime_locations$Crime_Count >= 300, 9,
                                                   ifelse(significant_crime_locations$Crime_Count >= 200, 6, 3)))
@@ -332,8 +317,8 @@ significant_crime_locations$color <- cut(significant_crime_locations$Crime_Count
                                          labels = crime_colors,
                                          right = FALSE)
 
-#Adjust color and labels, title, and scaling in whichever way desired
-# Prepare the plot
+#Adjust color and labels, title, and scaling in whichever way desired and prepare the plot
+
 plot <- ggplot() +
   geom_sf(data = boroughs, fill = "thistle", color = "black", size = 0.5) +  # Boroughs with base color
   geom_point(data = significant_crime_locations, aes(x = Longitude, y = Latitude, size = Crime_Count, color = Crime_Count), alpha = 0.8) +
@@ -358,10 +343,7 @@ plot <- ggplot() +
     legend.text = element_text(size = 10)
   )
 
-# Add labels for boroughs using the correct column name and a larger font size
 plot <- plot + geom_text(data = boroughs, aes(label = boro_name, x = st_coordinates(st_centroid(geometry))[, 1], y = st_coordinates(st_centroid(geometry))[, 2]), size = 6, fontface = "bold", color = "darkslategray")
-
-# Display the plot in R
 print(plot)
 
 
